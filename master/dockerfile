@@ -1,0 +1,36 @@
+FROM alpine:latest
+
+WORKDIR /db
+
+COPY postgresql.conf .
+COPY init.sh .
+
+USER root
+
+RUN apk add postgresql15 postgresql15-contrib postgresql15-openrc vim bash openrc \
+   && mkdir -p /var/lib/postgresql/data \
+   && mkdir -p /run/postgresql \
+   && mkdir /db/pg_data \
+   && chown postgres:postgres /var/lib/postgresql/data \
+   && chown postgres:postgres /run/postgresql \
+   && chown postgres:postgres /db/pg_data \
+   && chown postgres:postgres /db/init.sh 
+
+USER postgres
+
+ARG REPLPASSWORD
+ARG REPLUSER
+ARG MASTERHOST
+
+ENV REPLUSER=${REPLUSER}
+ENV REPLPASSWORD="${REPLPASSWORD}"
+ENV MASTERHOST=${MASTERHOST} 
+
+RUN initdb -D /var/lib/postgresql/data \
+    && cat /db/postgresql.conf >> /var/lib/postgresql/data/postgresql.conf \
+    && echo "host replication $REPLUSER $MASTERHOST scram-sha-256" >> /var/lib/postgresql/data/pg_hba.conf \
+    && chmod 700 /db/init.sh
+
+EXPOSE 5432
+
+ENTRYPOINT ["/db/init.sh"]

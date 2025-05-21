@@ -1,0 +1,40 @@
+FROM alpine:latest
+
+WORKDIR /db
+
+USER root
+
+COPY init.db .
+
+RUN apk add postgresql15 postgresql15-contrib postgresql15-openrc vim bash \
+    && mkdir -p /var/lib/postgresql/data \
+    && mkdir -p /run/postgresql \
+    && touch /var/lib/postgresql/.pgpass \
+    && chown postgres:postgres /var/lib/postgresql/data \
+    && chown postgres:postgres /run/postgresql \
+    && chown postgres:postgres /var/lib/postgresql/.pgpass \
+    && chown postgres:postgres /db/init.db \
+    && chmod 600 /var/lib/postgresql/.pgpass
+
+ARG MASTERHOST
+ARG REPLUSER
+ARG REPLPASSWORD
+ARG MASTERPORT
+
+ENV MASTERHOST=${MASTERHOST}
+ENV REPLUSER=${REPLUSER}
+ENV REPLPASSWORD=${REPLPASSWORD}
+ENV MASTERPORT=${MASTERPORT}
+ENV PGPASSFILE=/var/lib/postgresql/.pgpass
+
+USER postgres
+
+RUN echo "$MASTERHOST:$MASTERPORT:*:$REPLUSER:$REPLPASSWORD" >> /var/lib/postgresql/.pgpass \
+    && chmod 600 /var/lib/postgresql/.pgpass \
+    && chmod 700 /db/init.db
+
+RUN initdb -D /var/lib/postgresql/data \ 
+    && echo "listen_addresses='localhost, $MASTERHOST'" > /var/lib/postgresql/data/postgresql.conf 
+
+ENTRYPOINT ["/db/init.db"]
+

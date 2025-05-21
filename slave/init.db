@@ -1,0 +1,9 @@
+#!/bin/bash
+
+until pg_isready -h $MASTERHOST; do sleep 5; done
+
+rm -rf /var/lib/postgresql/data/*
+
+pg_basebackup -R -D /var/lib/postgresql/data -U $REPLUSER -h $MASTERHOST -P --wal-method=stream -w
+
+exec postgres -D /var/lib/postgresql/data

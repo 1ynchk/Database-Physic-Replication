@@ -1,0 +1,62 @@
+
+networks:
+
+  mynetwork:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.0.0/24
+          gateway: 192.168.0.1        
+
+services:
+
+  db_master:
+    build:
+      context: ./master
+      dockerfile: dockerfile
+      args: 
+        REPLUSER: repluser
+        REPLPASSWORD: repluserpassword
+        MASTERHOST: 192.168.0.3/24
+    container_name: db_master
+    networks:
+      mynetwork:
+          ipv4_address: 192.168.0.2
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_USER: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
+      timeout: 5s
+
+  db_slave:
+    container_name: db_slave
+    build:
+      context: ./slave
+      dockerfile: dockerfile
+      args:
+        REPLUSER: repluser
+        MASTERHOST: 192.168.0.2
+        MASTERPORT: 5432
+        REPLPASSWORD: repluserpassword
+    networks:
+      mynetwork:
+          ipv4_address: 192.168.0.3
+    ports:
+      - "4321:4321"
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_USER: postgres
+      POSTGRES_BD: starshop
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
+    depends_on:
+      db_master:
+        condition: service_healthy
