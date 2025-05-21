@@ -42,11 +42,11 @@ listen_addresses='*'
 Also, you can redefine existing params the way you want.
 
 3) After this, <i>pg_hba.conf</i> should be rewritten. We add the following row to the config:
-'''
+```
 host replication <repluser> <current_host> scram-sha-256
-'''
+```
 
-4) Finally, we can start our server:
+5) Finally, we can start our server:
 ```
 postgres -D /path/to/postgres/data
 
